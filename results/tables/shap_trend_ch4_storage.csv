@@ -1,0 +1,16 @@
+feature,mean_abs_shap,shap_trend,materials_meaning
+metal_covalent_radius_avg,0.5694047,negative,"metal size -> node geometry, pore shape"
+num_metal_atoms,0.3742163,nonlinear,cluster nuclearity (single-metal vs. multi-metal SBU)
+NumAromaticRings,0.2981717,positive,"aromaticity -> rigidity, pi-stacking, thermal stability"
+HeavyAtomCount,0.26126814,positive,linker size proxy
+FractionCSP3,0.21579441,negative,sp3 fraction -> flexibility vs. rigidity of linker backbone
+RingCount,0.2090498,positive,overall ring content of the linker
+MolLogP,0.20826754,positive,hydrophobicity -> pore surface polarity trade-off
+NumHeteroatoms,0.18821594,negative,heteroatom content -> polar/coordination sites
+metal_atomic_weight_avg,0.17170209,negative,correlates with framework density
+NumCarboxylGroups,0.16085723,positive,carboxylate count -> typical MOF coordination groups
+metal_electronegativity_avg,0.1363664,negative,higher electronegativity -> different metal-linker polarization
+MolWt,0.11943706,negative,"larger linkers -> bigger pores, more framework mass"
+NumRotatableBonds,0.11932007,positive,linker flexibility -> framework flexibility/interpenetration risk
+fp_74,0.10646003,negative,fingerprint bit (specific linker substructure)
+num_distinct_metals,0.10440092,negative,mixed-metal node indicator

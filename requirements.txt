@@ -1,0 +1,7 @@
+rdkit
+pandas
+numpy
+scikit-learn
+xgboost
+shap
+pyarrow

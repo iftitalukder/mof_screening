@@ -1,0 +1,26 @@
+mof_row_id,precursor,prediction,confidence,shap_reason,action
+209,N1=NN=C([N]1)CN1[CH]C=C(C=C1)C1=C[CH]N(C=C1)CC1=NN=N[N]1.[O-]C(=O)c1cc(C(=O)[O-])c(cc1C(=O)[O-])C(=O)[O-].[Zn],not promising,0.022,-fp_95 / -num_metal_atoms,deprioritize
+4627,[Cd].[O-]C(=O)c1cc(C(=O)[O-])c(c(c1)N(=O)=O)c1c(cc(cc1N(=O)=O)C(=O)[O-])C(=O)[O-],not promising,0.028,-metal_covalent_radius_avg / -fp_199,deprioritize
+2627,[O-]C(=O)c1ccc(cc1)N(c1ccc(cc1)C(=O)[O-])c1ccc(cc1)C(=O)[O-].[Zn].n1ccc(cc1)[N][N]c1ccncc1,not promising,0.127,-num_metal_atoms / -fp_74,deprioritize
+4128,[O-]C(=O)c1cc2C#Cc3cccc(c3)C#Cc3cc(cc(c3)C#Cc3cccc(C#Cc4cc(C#Cc5cc(C#Cc(c1)c2)ccc5)cc(c4)C(=O)[O-])c3)C(=O)[O-].[Zn],promising,0.538,+HeavyAtomCount / -fp_78,needs further test
+5718,C1N2CN3CN1CP(C2)C3.[Ag].[O-]C(=O)CC(c1ccccc1)CC(=O)[O-],not promising,0.009,-metal_covalent_radius_avg / -fp_175,deprioritize
+3761,[O-]C(=O)c1c2ccccc2c(c2c1cccc2)C(=O)[O-].[O-]C(=O)c1ccc(cc1)c1cc(cc(c1)C(=O)[O-])C(=O)[O-].[Zn][O]([Zn])([Zn])[Zn],promising,0.879,+num_metal_atoms / +metal_covalent_radius_avg,prioritize
+5448,[C]#N.[Pt].[Yb],not promising,0.011,-metal_covalent_radius_avg / -NumAromaticRings,deprioritize
+3367,I[Cu]12[Cu]3[Cu]1[Cu]23(I)(I)I.[O-]C(=O)c1ccncc1.[Tb][Tb],not promising,0.004,-metal_covalent_radius_avg / -num_distinct_metals,deprioritize
+903,Cc1c(C)c(Cn2cncc2)c(c(c1Cn1cncc1)C)C.[O-]C(=O)c1ccc(cc1)C(=O)[O-].[Zn],not promising,0.024,-fp_238 / -num_metal_atoms,deprioritize
+4922,[Eu].[O-]C(=O)c1ccc(cc1)Oc1ccc(cc1)C(=O)[O-],not promising,0.066,-fp_228 / -metal_covalent_radius_avg,deprioritize
+5686,[C]#N.[Cd].[NH]Cc1ccc(cc1)C[NH].[Ni],not promising,0.063,-HeavyAtomCount / -RingCount,deprioritize
+4730,[Ni].[O-]C(=O)CCCCC(=O)[O-].c1ncn(c1)CC(Cn1cncc1)(Cn1cncc1)Cn1cncc1,not promising,0.006,-NumPyridylN / -fp_238,deprioritize
+5682,NC1=C2N=CN=C2[N]C=N1.NC1=NC=[N]=C2C1=NC=N2.[O-]C(=O)c1cc(cc(c1)C(=O)[O-])C(=O)[O-].[Zn],not promising,0.28,+metal_covalent_radius_avg / -HeavyAtomCount,deprioritize
+844,[Eu].[O-]C(=O)CCc1cc(I)c(c(c1)I)OCC(=O)[O-],not promising,0.002,-metal_covalent_radius_avg / -RingCount,deprioritize
+5465,CCP(=O)([O])[O].[CH]P(=O)([O])[O].[V][OH2][V],not promising,0.0,-fp_187 / -metal_covalent_radius_avg,deprioritize
+5195,CCOc1cc(C=CC(=O)[O-])c2c(c1c1c(OCC)cc(c3c1ccc(c3)C=CC(=O)[O-])C=CC(=O)[O-])ccc(c2)C=CC(=O)[O-].[Cu][Cu],promising,0.653,+NumCarboxylGroups / +num_metal_atoms,needs further test
+1780,[Cu].[Cu][Cu].[O-]C(=O)c1cccc(c1)n1c(C)nnc1c1ccc(s1)c1nnc(n1c1cccc(c1)C(=O)[O-])C,not promising,0.313,+num_metal_atoms / -fp_228,deprioritize
+1069,[O-]C(=O)c1ccc(cc1)c1cc2OCCOCCOc3cc(c4ccc(cc4)C(=O)[O-])c(cc3OCCOCCOc2cc1c1ccc(cc1)C(=O)[O-])c1ccc(cc1)C(=O)[O-].[Zn][O]([Zn][O]([Zn])[Zn])[Zn],promising,0.804,+num_metal_atoms / +HeavyAtomCount,prioritize
+1430,NC1=NN=C[N]1.[Co].[O-]C(=O)c1cc(cc(c1)C(=O)[O-])C(=O)[O-],not promising,0.048,-fp_145 / +metal_covalent_radius_avg,deprioritize
+4779,N#C[C](c1ccc(cc1)[C](C#N)C#N)C#N.[Fe].n1ccc(cc1)c1ccncc1,promising,0.807,+fp_174 / +metal_covalent_radius_avg,prioritize
+6061,[O-]C(=O)c1cc([O])c(cc1[O])C(=O)[O-].[O]C#C[O].[Zn].[Zn][Zn],not promising,0.094,+metal_covalent_radius_avg / -fp_199,deprioritize
+5860,[Co].[O-]C(=O)c1ccc(nc1)c1ccc(cn1)C(=O)[O-].[O-]C=O,promising,0.558,+fp_194 / -num_metal_atoms,needs further test
+1429,O=C(c1ccncc1)Nc1cccnc1.[Cu][Cu].[O-]C(=O)CCCC(=O)[O-],not promising,0.025,-FractionCSP3 / +num_metal_atoms,deprioritize
+1457,[Ni].[O-]C(=O)c1c(C(=O)[O-])c(F)c(c(c1F)F)F.n1ccc(cc1)C1=NC(=[N]=C([N]1)c1ccncc1)c1ccncc1,not promising,0.491,+metal_covalent_radius_avg / +metal_Ni,needs further test
+2445,I[Cu][Cu]I.[Cu][Cu].[O-]C(=O)c1ccc(cc1)C1=C[N]C=N[CH]1.[O-]C(=O)c1ccc(cc1)c1cncnc1,promising,0.548,+num_metal_atoms / +fp_93,needs further test

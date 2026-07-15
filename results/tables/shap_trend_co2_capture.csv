@@ -1,0 +1,16 @@
+feature,mean_abs_shap,shap_trend,materials_meaning
+metal_electronegativity_avg,0.48994464,negative,higher electronegativity -> different metal-linker polarization
+num_metal_atoms,0.253469,negative,cluster nuclearity (single-metal vs. multi-metal SBU)
+metal_Cu,0.252418,negative,metal identity indicator
+metal_atomic_weight_avg,0.18430799,negative,correlates with framework density
+metal_covalent_radius_avg,0.17774001,positive,"metal size -> node geometry, pore shape"
+MolLogP,0.15630925,nonlinear,hydrophobicity -> pore surface polarity trade-off
+TPSA,0.14317189,negative,polar surface area -> proxy for framework polarity/CO2 affinity
+fp_105,0.13145423,negative,fingerprint bit (specific linker substructure)
+MolWt,0.13082309,negative,"larger linkers -> bigger pores, more framework mass"
+NumRotatableBonds,0.11691712,positive,linker flexibility -> framework flexibility/interpenetration risk
+fp_107,0.10336598,positive,fingerprint bit (specific linker substructure)
+metal_atomic_number_avg,0.09329488,negative,correlates with metal identity/row in periodic table
+metal_Ag,0.08406894,negative,metal identity indicator
+fp_161,0.07798445,negative,fingerprint bit (specific linker substructure)
+HeavyAtomCount,0.07488318,negative,linker size proxy

@@ -1,0 +1,26 @@
+mof_row_id,precursor,prediction,confidence,shap_reason,action
+194,[O-]C(=O)CC(c1cccnc1)N.[Zn],not promising,0.054,-fp_210 / -fp_176,deprioritize
+4743,[Cu][Cu](I)I.[Gd].[O-]C(=O)c1cccnc1,not promising,0.034,-metal_Cu / -metal_electronegativity_avg,deprioritize
+2735,[Co].[O-]C(=O)c1ccc(cc1)c1ccc(cc1)C(=O)[O-].c1cc(cc(c1)n1cncc1)n1cncc1,not promising,0.236,-metal_electronegativity_avg / +num_metal_atoms,deprioritize
+3832,[Mg].[O-]C(=O)C1=[C]C(=[C]C(=[C]1)C(=O)[O-])C(=O)[O-].[Zn],not promising,0.142,+MolLogP / -fp_161,deprioritize
+5807,O=C(c1ccc(cc1)C(=O)Nc1cc([nH][n-]1)C)Nc1cc([nH][n-]1)C.[Co],not promising,0.197,-NumRotatableBonds / -metal_electronegativity_avg,deprioritize
+3571,[O-]C(=O)c1ccc(cc1)OCC(COc1ccc(cc1)C(=O)[O-])(COc1ccc(cc1)C(=O)[O-])COc1ccc(cc1)C(=O)[O-].[Y].[Y][Y],promising,0.695,+metal_electronegativity_avg / +metal_covalent_radius_avg,needs further test
+5536,[Cu][OH]([Cu])[Cu].[Na].[O-]C(=O)CCNCc1ccccc1C(=O)[O-],not promising,0.111,-metal_Cu / +metal_atomic_weight_avg,deprioritize
+3444,[O-]C(=O)c1cc(cc(c1)C(=O)O)[C]1N[N]C(=N1)c1cc(cc(c1)C(=O)O)C(=O)[O-].[Zn],not promising,0.082,-fp_217 / -metal_electronegativity_avg,deprioritize
+893,[Co].[O-]C(=O)c1ccnc(c1)C(=O)[O-].[OH],not promising,0.102,-metal_electronegativity_avg / -fp_215,deprioritize
+5031,COc1ccc(cc1OS(c1ccc(cc1)C(=O)[O-])([O])[O])C(=O)[O-].[Dy],not promising,0.003,-fp_73 / -fp_249,deprioritize
+5772,[O]S(c1cccc2c1cccc2S([O])([O])[O])([O])[O].[Pr],not promising,0.378,+metal_covalent_radius_avg / +metal_electronegativity_avg,deprioritize
+4834,[O]N(c1cc(cc(c1)C(=O)[O-])C(=O)[O-])[N]c1cc(cc(c1)C(=O)[O-])C(=O)[O-].[Zn],not promising,0.263,-fp_62 / -metal_electronegativity_avg,deprioritize
+5451,[Ho]12[OH]3[Ho]4[OH]2[Ho]2[OH]1[Ho]3[OH]42.[O-]C(=O)c1ccc(cc1)N(c1ccc(cc1)C(=O)[O-])c1ccc(cc1)C(=O)[O-],not promising,0.265,+metal_electronegativity_avg / -metal_atomic_weight_avg,deprioritize
+817,[In].[O-]C(=O)c1ncc(nc1)C(=O)[O-],not promising,0.321,+fp_255 / -metal_electronegativity_avg,deprioritize
+5554,C=CCN(C#N)CC=C.[Ag],not promising,0.043,-metal_Ag / -metal_electronegativity_avg,deprioritize
+4837,[O-]C(=O)C1=CC(=C([C]=C1C(=O)[O-])C(=O)[O-])C(=O)[O-].[O-]C(=O)c1cc(C(=O)[O-])c(cc1C(=O)[O-])C(=O)[O-].[Tm],not promising,0.29,-metal_atomic_weight_avg / +metal_electronegativity_avg,deprioritize
+1853,[O-]C(=O)c1cc(c2ccc(cc2)C(=O)[O-])c(cc1c1ccc(cc1)C(=O)[O-])C(=O)[O-].[OH2][Ni][OH2][Ni],not promising,0.37,+metal_atomic_weight_avg / -metal_electronegativity_avg,deprioritize
+1078,[Gd].[O-]C(=O)CSCCSCC(=O)[O-],not promising,0.366,+fp_187 / -metal_Gd,deprioritize
+1431,Cc1c(c2ccncc2)c(c2n1[B](F)(F)n1c(C2C)c(c(c1C)c1ccncc1)C)C.[Cd].[O-]C(=O)c1ccc(cc1)C(=O)[O-],not promising,0.22,-NumRotatableBonds / +TPSA,deprioritize
+4437,[O-]C(=O)c1sc2c(c1C)c(c(s2)C(=O)[O-])C.[Zn][O]([Zn])([Zn])[Zn],not promising,0.196,-fp_217 / -metal_electronegativity_avg,deprioritize
+6071,[O-]C(=O)c1ccc(cc1)C(=O)[O-].[O]12[Hf]34[OH]5[Hf]62[OH]2[Hf]71[OH]4[Hf]14[O]3[Hf]35[O]6[Hf]2([O]71)[OH]43,not promising,0.014,-metal_atomic_weight_avg / -metal_atomic_number_avg,deprioritize
+5624,[O-]C(=O)c1ccnc(c1)c1nccc(c1)C(=O)[O-].[Tb],promising,0.638,+metal_electronegativity_avg / -fp_193,needs further test
+1430,NC1=NN=C[N]1.[Co].[O-]C(=O)c1cc(cc(c1)C(=O)[O-])C(=O)[O-],not promising,0.239,-metal_electronegativity_avg / +fp_163,deprioritize
+1436,[Mn].[O-]C(=O)c1ccc(cc1)C(=O)[O-],promising,0.703,+metal_Mn / +metal_electronegativity_avg,prioritize
+2167,[Eu].[O-]C(=O)C(=O)[O-].[O-]C(=O)c1ncc(nc1)C(=O)[O-],promising,0.892,+metal_electronegativity_avg / +fp_255,prioritize
