@@ -1,62 +1,108 @@
 """
-shap_analysis.py
------------------
-Co-author point #5. Runs SHAP on the best model (XGBoost,
-precursor_descriptor feature group, per application), produces:
-  - a global feature-importance / trend table (feature, SHAP direction,
-    materials-meaning note) like the docx example table
-  - the "shap_selected" feature group: subsets precursor_descriptor to
-    its top-K SHAP features and saves it as a 4th feature parquet, so
-    models.py's ablation table 0 can include it too.
+shap_analysis.py (v2)
+----------------------
+FIX for #11 (test-set leakage in SHAP feature selection): the
+`shap_selected` feature group is now built from SHAP values computed
+on the TRAINING fold of the primary (scaffold) split only. The test
+fold is never touched during feature selection.
+
+FIX for #12 (README claimed 4 groups, only 3 were ever trained):
+`select_shap_features()` is called explicitly in run_pipeline.py BEFORE
+models.main(), and the resulting group is added to
+config.FEATURE_GROUPS and actually trained/evaluated in the ablation
+table, for both applications.
+
+A SEPARATE, later SHAP computation on the test fold of the final
+chosen model is still performed for the human-readable trend table
+(materials-chemistry interpretation) -- this is legitimate because it
+never feeds back into model or feature-set choices used to score that
+same test fold; it is purely post-hoc explanation of a fixed, already-
+evaluated model.
+
+FIX for #13 (causal-sounding language, undecoded fingerprint bits):
+notes now use association language ("associated with", not "->"), and
+fingerprint bits are decoded to their actual atom environment via
+RDKit's bitInfo wherever possible.
 """
 import os
 import numpy as np
 import pandas as pd
 import shap
 import xgboost as xgb
+from rdkit import Chem, RDLogger
+from rdkit.Chem import AllChem
+
+RDLogger.DisableLog("rdApp.*")
 
 import config
 import data_prep
 import splits as splits_mod
 
-# hand-written, human-readable notes for the descriptor-side features;
-# fingerprint bits (fp_###) get a generic note since individual bits
-# aren't chemically nameable without decoding the Morgan hash.
 FEATURE_NOTES = {
-    "MolWt": "larger linkers -> bigger pores, more framework mass",
-    "TPSA": "polar surface area -> proxy for framework polarity/CO2 affinity",
-    "NumHDonors": "H-bond donors on linker -> polar adsorption sites",
-    "NumHAcceptors": "H-bond acceptors -> polar adsorption sites",
-    "NumRotatableBonds": "linker flexibility -> framework flexibility/interpenetration risk",
-    "NumAromaticRings": "aromaticity -> rigidity, pi-stacking, thermal stability",
+    "MolWt": "associated with linker/framework size",
+    "TPSA": "polar surface area -- associated with framework polarity",
+    "NumHDonors": "H-bond donor count -- associated with polar adsorption sites",
+    "NumHAcceptors": "H-bond acceptor count -- associated with polar adsorption sites",
+    "NumRotatableBonds": "linker flexibility indicator",
+    "NumAromaticRings": "aromaticity -- associated with rigidity/pi-stacking",
     "RingCount": "overall ring content of the linker",
-    "FractionCSP3": "sp3 fraction -> flexibility vs. rigidity of linker backbone",
-    "MolLogP": "hydrophobicity -> pore surface polarity trade-off",
-    "NumHeteroatoms": "heteroatom content -> polar/coordination sites",
+    "FractionCSP3": "sp3 fraction -- associated with flexibility vs. rigidity",
+    "MolLogP": "hydrophobicity indicator",
+    "NumHeteroatoms": "heteroatom content -- associated with polar/coordination sites",
     "HeavyAtomCount": "linker size proxy",
-    "NumCarboxylGroups": "carboxylate count -> typical MOF coordination groups",
-    "NumPyridylN": "pyridyl-type N count -> alternative coordination chemistry",
-    "metal_electronegativity_avg": "higher electronegativity -> different metal-linker polarization",
-    "metal_covalent_radius_avg": "metal size -> node geometry, pore shape",
-    "metal_atomic_weight_avg": "correlates with framework density",
-    "metal_atomic_number_avg": "correlates with metal identity/row in periodic table",
-    "num_metal_atoms": "cluster nuclearity (single-metal vs. multi-metal SBU)",
+    "NumCarboxylGroups": "carboxylate count -- common MOF coordination group",
+    "NumPyridylN": "pyridyl-type N count -- alternative coordination chemistry",
+    "metal_electronegativity_avg": "metal electronegativity (avg over node)",
+    "metal_covalent_radius_avg": "metal covalent radius (avg over node) -- associated with node geometry",
+    "metal_atomic_weight_avg": "correlated with framework density",
+    "metal_atomic_number_avg": "correlated with metal identity/periodic row",
+    "num_metal_atoms": "cluster nuclearity (single- vs. multi-metal SBU)",
     "num_distinct_metals": "mixed-metal node indicator",
 }
 
 
-def compute_shap_for_application(app_name: str, master: pd.DataFrame):
-    feat_df = pd.read_parquet(
-        os.path.join(config.DATA_PROCESSED, "features_precursor_descriptor.parquet")
-    )
-    label_col = f"label_{app_name}"
-    split_idx = splits_mod.random_split(master, label_col)
+def decode_fingerprint_bit(bit_idx: int, sample_smiles_list, radius=None, nbits=None):
+    """
+    Attempts to decode a Morgan fingerprint bit to the actual atom
+    environment it represents, using bitInfo from a handful of sample
+    molecules. Returns a human-readable SMARTS-like fragment string, or
+    a generic label if the bit can't be traced to any sample molecule.
+    """
+    radius = radius or config.MORGAN_RADIUS
+    nbits = nbits or config.MORGAN_NBITS
+    for smiles in sample_smiles_list:
+        mol = Chem.MolFromSmiles(smiles) if smiles else None
+        if mol is None:
+            continue
+        info = {}
+        AllChem.GetMorganFingerprintAsBitVect(mol, radius=radius, nBits=nbits, bitInfo=info)
+        if bit_idx in info:
+            atom_idx, rad = info[bit_idx][0]
+            env = Chem.FindAtomEnvironmentOfRadiusN(mol, rad, atom_idx)
+            amap = {}
+            submol = Chem.PathToSubmol(mol, env, atomMap=amap)
+            try:
+                frag_smiles = Chem.MolToSmiles(submol)
+                if frag_smiles:
+                    return f"substructure: {frag_smiles}"
+            except Exception:
+                pass
+    return "fingerprint bit (no decodable example found in sample)"
+
+
+def select_shap_features(app_name: str, master: pd.DataFrame,
+                          feat_df: pd.DataFrame, split_idx: dict, top_k: int = None):
+    """
+    Fix for #11: SHAP computed on TRAIN fold only, used purely for
+    feature selection (never touches the test fold at this stage).
+    """
+    top_k = top_k or config.SHAP_TOP_K
+    labels, cutoff = splits_mod.make_labels_from_train_threshold(master, split_idx["train"], app_name)
 
     data_prep.assert_no_leakage(feat_df.columns, app_name)
 
     X_train = feat_df.loc[split_idx["train"]]
-    y_train = master.loc[split_idx["train"], label_col]
-    X_test = feat_df.loc[split_idx["test"]]
+    y_train = labels.loc[split_idx["train"]]
 
     model = xgb.XGBClassifier(
         n_estimators=300, max_depth=6, learning_rate=0.1,
@@ -65,91 +111,51 @@ def compute_shap_for_application(app_name: str, master: pd.DataFrame):
     model.fit(X_train, y_train)
 
     explainer = shap.TreeExplainer(model)
+    shap_values_train = explainer(X_train)
+
+    mean_abs = np.abs(shap_values_train.values).mean(axis=0)
+    order = np.argsort(mean_abs)[::-1][:top_k]
+    top_features = X_train.columns[order].tolist()
+
+    return top_features
+
+
+def build_trend_table_on_test(app_name: str, model, X_test: pd.DataFrame, sample_linkers):
+    """
+    Separate, legitimate post-hoc SHAP explanation computed on the TEST
+    fold of the already-fixed, already-scored final model -- does not
+    feed back into training or feature selection for this same test
+    fold, so this is not leakage, only interpretation.
+    """
+    explainer = shap.TreeExplainer(model)
     shap_values = explainer(X_test)
 
-    return model, explainer, shap_values, X_test, split_idx
-
-
-def build_trend_table(shap_values, X_test, top_n: int = None):
-    top_n = top_n or config.SHAP_TOP_K
     mean_abs = np.abs(shap_values.values).mean(axis=0)
-    order = np.argsort(mean_abs)[::-1][:top_n]
+    order = np.argsort(mean_abs)[::-1][:config.SHAP_TOP_K]
 
     rows = []
     for i in order:
         feat_name = X_test.columns[i]
-        # direction: correlation sign between feature value and SHAP value
         vals = X_test.iloc[:, i].values
         svals = shap_values.values[:, i]
         if np.std(vals) == 0 or np.std(svals) == 0:
             direction = "flat"
         else:
             corr = np.corrcoef(vals, svals)[0, 1]
-            if abs(corr) < 0.15:
-                direction = "nonlinear"
-            elif corr > 0:
-                direction = "positive"
-            else:
-                direction = "negative"
-        rows.append(
-            {
-                "feature": feat_name,
-                "mean_abs_shap": mean_abs[i],
-                "shap_trend": direction,
-                "materials_meaning": FEATURE_NOTES.get(
-                    feat_name,
-                    "fingerprint bit (specific linker substructure)"
-                    if feat_name.startswith("fp_")
-                    else "metal identity indicator"
-                    if feat_name.startswith("metal_")
-                    else "n/a",
-                ),
-            }
-        )
+            direction = "nonlinear" if abs(corr) < 0.15 else ("positive" if corr > 0 else "negative")
+
+        if feat_name.startswith("fp_"):
+            bit_idx = int(feat_name.split("_")[1])
+            note = decode_fingerprint_bit(bit_idx, sample_linkers)
+        elif feat_name.startswith("metal_") and feat_name not in FEATURE_NOTES:
+            note = "metal identity indicator"
+        else:
+            note = FEATURE_NOTES.get(feat_name, "n/a")
+
+        rows.append({
+            "feature": feat_name,
+            "mean_abs_shap": mean_abs[i],
+            "shap_trend": direction,
+            "materials_meaning": note,
+        })
     return pd.DataFrame(rows)
-
-
-def build_shap_selected_feature_group(shap_values, X_test, all_feat_df, top_n: int = None):
-    top_n = top_n or config.SHAP_TOP_K
-    mean_abs = np.abs(shap_values.values).mean(axis=0)
-    order = np.argsort(mean_abs)[::-1][:top_n]
-    top_features = X_test.columns[order].tolist()
-    return all_feat_df[top_features], top_features
-
-
-def main():
-    os.makedirs(config.RESULTS_TABLES, exist_ok=True)
-    master = pd.read_csv(os.path.join(config.DATA_PROCESSED, "master_table.csv"))
-    all_feat_df = pd.read_parquet(
-        os.path.join(config.DATA_PROCESSED, "features_precursor_descriptor.parquet")
-    )
-
-    for app_name in config.APPLICATIONS:
-        print(f"\n=== SHAP: {app_name} ===")
-        model, explainer, shap_values, X_test, split_idx = compute_shap_for_application(
-            app_name, master
-        )
-
-        trend_table = build_trend_table(shap_values, X_test)
-        trend_table.to_csv(
-            os.path.join(config.RESULTS_TABLES, f"shap_trend_{app_name}.csv"),
-            index=False,
-        )
-        print(trend_table.to_string(index=False))
-
-        shap_selected_df, top_features = build_shap_selected_feature_group(
-            shap_values, X_test, all_feat_df
-        )
-        shap_selected_df.to_parquet(
-            os.path.join(
-                config.DATA_PROCESSED, f"features_shap_selected_{app_name}.parquet"
-            )
-        )
-        print(f"Saved shap_selected feature group ({len(top_features)} features) "
-              f"for {app_name}")
-
-    print(f"\nSaved SHAP tables to {config.RESULTS_TABLES}/")
-
-
-if __name__ == "__main__":
-    main()

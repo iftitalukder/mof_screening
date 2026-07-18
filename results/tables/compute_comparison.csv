@@ -1,4 +1,4 @@
-model,training_time_sec,inference_time_sec_per_test_set,gpu_needed,interpretability
-logistic_regression,2.049,0.0011,no,high
-random_forest,1.0799,0.1283,no,medium
-xgboost,0.5225,0.0081,no,SHAP-compatible
+model,train_time_sec_mean,inference_time_sec_per_sample_mean,peak_train_memory_kb_mean,model_size_kb_mean,gpu_needed
+logistic_regression,0.7531078500000679,1.071462516640961e-05,25126.34716796875,12.986328125,no
+random_forest,1.702877416666638,5.921060666011079e-05,17951.050618489586,9454.135579427084,no
+xgboost,1.726062899999988,5.389136255270928e-05,5915.436848958334,327.7649739583333,no

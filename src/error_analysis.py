@@ -1,25 +1,19 @@
 """
-error_analysis.py
-------------------
-Co-author point #8. Pulls false positives (model says promising, isn't)
-and false negatives (model misses a truly promising MOF) from the test
-set, and groups them by a likely cause using simple heuristics:
-    - missing_descriptor : linker SMILES failed to parse (all-zero
-                            descriptor row) -> model was flying blind
-    - unusual_metal       : primary metal is rare in the training data
-                            (outside the top-15 bucketed metals ->
-                            landed in "metal_other")
-    - out_of_domain_size  : linker MolWt is in the extreme tail
-                            (<5th or >95th percentile) of the training
-                            distribution
-    - unexplained         : none of the above -- genuine model error
+error_analysis.py (v2)
+------------------------
+Same heuristic categories as v1, now run on the scaffold split (the
+primary, rigorous split) instead of the old leaky random split, so the
+error breakdown reflects genuine out-of-distribution generalization
+failures rather than near-duplicate-chemistry misses.
 """
 import os
 import pandas as pd
+import xgboost as xgb
 
 import config
-import shap_analysis
-import featurize
+import data_prep
+import splits as splits_mod
+import metal_properties as mp
 
 
 def classify_error_cause(row, mol_wt_low, mol_wt_high, top_metals: set) -> str:
@@ -34,54 +28,52 @@ def classify_error_cause(row, mol_wt_low, mol_wt_high, top_metals: set) -> str:
 
 
 def build_error_table(app_name: str, master: pd.DataFrame):
-    model, explainer, shap_values, X_test, split_idx = shap_analysis.compute_shap_for_application(
-        app_name, master
-    )
-    label_col = f"label_{app_name}"
+    feat_df = pd.read_parquet(os.path.join(config.DATA_PROCESSED, "features_precursor_descriptor.parquet"))
+    split_idx = splits_mod.scaffold_split(master, seed=config.SEED)
+    labels, cutoff = splits_mod.make_labels_from_train_threshold(master, split_idx["train"], app_name)
 
-    y_true = master.loc[split_idx["test"], label_col].values
+    data_prep.assert_no_leakage(feat_df.columns, app_name)
+
+    X_train = feat_df.loc[split_idx["train"]]
+    y_train = labels.loc[split_idx["train"]]
+    X_test = feat_df.loc[split_idx["test"]]
+    y_test = labels.loc[split_idx["test"]].values
+
+    model = xgb.XGBClassifier(
+        n_estimators=200, max_depth=6, learning_rate=0.1,
+        random_state=config.SEED, eval_metric="logloss", n_jobs=-1,
+    )
+    model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
 
-    train_desc = pd.read_parquet(
-        os.path.join(config.DATA_PROCESSED, "features_descriptor_only.parquet")
-    ).loc[split_idx["train"]]
-    mol_wt_low = train_desc["MolWt"].quantile(0.05)
-    mol_wt_high = train_desc["MolWt"].quantile(0.95)
+    desc_df = pd.read_parquet(os.path.join(config.DATA_PROCESSED, "features_descriptor_only.parquet"))
+    mol_wt_low = desc_df.loc[split_idx["train"], "MolWt"].quantile(0.05)
+    mol_wt_high = desc_df.loc[split_idx["train"], "MolWt"].quantile(0.95)
 
     metal_feats = master.loc[split_idx["train"], "metal_frag"].apply(
-        lambda m: __import__("metal_properties").metal_fragment_features(m)["primary_metal"]
+        lambda m: mp.metal_fragment_features(m)["primary_metal"]
     )
     top_metals = set(metal_feats.value_counts().head(15).index)
 
-    desc_df = pd.read_parquet(
-        os.path.join(config.DATA_PROCESSED, "features_descriptor_only.parquet")
-    ).loc[split_idx["test"]]
-
     rows = []
     for row_pos, mof_idx in enumerate(split_idx["test"]):
-        true_label = y_true[row_pos]
+        true_label = y_test[row_pos]
         pred_label = y_pred[row_pos]
         if true_label == pred_label:
-            continue  # only record errors
+            continue
 
         error_type = "false_positive" if pred_label == 1 and true_label == 0 else "false_negative"
-
         feat_row = desc_df.loc[mof_idx].to_dict()
-        primary_metal = __import__("metal_properties").metal_fragment_features(
-            master.loc[mof_idx, "metal_frag"]
-        )["primary_metal"]
+        primary_metal = mp.metal_fragment_features(master.loc[mof_idx, "metal_frag"])["primary_metal"]
         feat_row["primary_metal"] = primary_metal
-
         cause = classify_error_cause(feat_row, mol_wt_low, mol_wt_high, top_metals)
 
-        rows.append(
-            {
-                "mof_row_id": int(mof_idx),
-                "precursor": master.loc[mof_idx, "precursor"],
-                "error_type": error_type,
-                "likely_cause": cause,
-            }
-        )
+        rows.append({
+            "mof_id": int(master.loc[mof_idx, "mof_id"]),
+            "precursor": master.loc[mof_idx, "precursor"],
+            "error_type": error_type,
+            "likely_cause": cause,
+        })
     return pd.DataFrame(rows)
 
 
@@ -90,12 +82,9 @@ def main():
     master = pd.read_csv(os.path.join(config.DATA_PROCESSED, "master_table.csv"))
 
     for app_name in config.APPLICATIONS:
-        print(f"\n=== Error analysis: {app_name} ===")
+        print(f"\n=== Error analysis (scaffold split): {app_name} ===")
         err_df = build_error_table(app_name, master)
-        err_df.to_csv(
-            os.path.join(config.RESULTS_TABLES, f"error_analysis_{app_name}.csv"),
-            index=False,
-        )
+        err_df.to_csv(os.path.join(config.RESULTS_TABLES, f"error_analysis_{app_name}.csv"), index=False)
         print(f"Total errors: {len(err_df)}")
         if len(err_df):
             print(err_df.groupby(["error_type", "likely_cause"]).size().to_string())
